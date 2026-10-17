@@ -4,7 +4,6 @@ Aplicación de escritorio en **JavaFX** conectada a **PostgreSQL** mediante **JD
 
 - **Autor:** Valle Alonso Moises Abraham
 - **Laboratorio:** Acceso a datos y visualización en TableView
-
 ---
 
 ## 1. Versiones utilizadas
@@ -15,15 +14,15 @@ Aplicación de escritorio en **JavaFX** conectada a **PostgreSQL** mediante **JD
 | JavaFX | 21.0.6 |
 | PostgreSQL | 18.6 |
 | Driver JDBC PostgreSQL | 42.7.13 |
-| Maven | Maven Wrapper incluido (`mvnw`), `maven-compiler-plugin` 3.13.0 |
-| Plugin de ejecución | `javafx-maven-plugin` 0.0.8 |
 | IDE | IntelliJ IDEA 2026.2.3 |
 
 > **Nota sobre el entorno de desarrollo.** El proyecto se desarrolló en **Fedora 44 Workstation**, con PostgreSQL 18.6 en un contenedor de **Podman** (imagen `docker.io/library/postgres:18`, puerto `5432`) gestionado desde DataGrip. Este entorno no es necesario para ejecutar el proyecto. Las instrucciones siguientes están escritas para **Windows con PostgreSQL y pgAdmin instalados**.
-
+ 
 ---
 
-## 2. Dependencias (`pom.xml`)
+## 2. Dependencias y compilación (`pom.xml`)
+
+### Dependencias
 
 | Dependencia | Versión | Uso |
 |---|---|---|
@@ -32,26 +31,25 @@ Aplicación de escritorio en **JavaFX** conectada a **PostgreSQL** mediante **JD
 | `org.postgresql:postgresql` | 42.7.13 | Driver JDBC para PostgreSQL |
 | `org.junit.jupiter` (api y engine) | 5.12.1 | Incluidas por la plantilla del proyecto (alcance `test`); no se usan |
 
+### Compilación y ejecución
+
+| Herramienta | Versión | Uso |
+|---|---|---|
+| Maven Wrapper (`mvnw` / `mvnw.cmd`) | Incluido en el proyecto | Compila y ejecuta sin instalar Maven |
+| `maven-compiler-plugin` | 3.13.0 | Compila el proyecto con Java 21 |
+| `javafx-maven-plugin` | 0.0.8 | Ejecuta la aplicación con `javafx:run` |
+
 Maven descarga las dependencias automáticamente al abrir o compilar el proyecto.
-
+ 
 ---
 
-## 3. Requisitos previos
-
-- **JDK 21** instalado.
-- **PostgreSQL** (versión 13 o superior) instalado y en ejecución en `localhost:5432`.
-- **pgAdmin 4**, que se instala junto con PostgreSQL en Windows.
-- **IntelliJ IDEA**. Otro IDE compatible con Maven también funciona.
-
----
-
-## 4. Crear la base de datos en pgAdmin
+## 3. Crear la base de datos en pgAdmin
 
 Los scripts están en la carpeta `sql/` del proyecto:
 
 | Archivo | Contenido |
 |---|---|
-| `sql/estructura.sql` | Crea el esquema `catalogo` y la tabla `producto` (ver el detalle debajo de esta tabla). |
+| `sql/estructura.sql` | Crea el esquema `catalogo` y la tabla `producto` con sus restricciones. |
 | `sql/datos.sql` | Vacía la tabla, reinicia el identificador y carga exactamente los 12 productos iniciales. |
 
 La tabla `producto` se crea con estas restricciones:
@@ -60,28 +58,24 @@ La tabla `producto` se crea con estas restricciones:
 - `NOT NULL` en todos los campos.
 - `UNIQUE` en `codigo`.
 - Cinco `CHECK`: código normalizado no vacío, nombre de 3 a 80 caracteres, categoría permitida, precio positivo y stock no negativo.
-
 > La tabla se crea en el esquema **`catalogo`**, no en `public`.
 
-### 4.1 Crear la base
+### 3.1 Crear la base
 
 1. Abra **pgAdmin 4** y conéctese a su servidor PostgreSQL.
 2. Haga clic derecho en **Databases** y elija **Create → Database…**
 3. En **Database** escriba `papeleria_campus` y pulse **Save**.
-
-### 4.2 Crear la tabla
+### 3.2 Crear la tabla
 
 1. Seleccione la base `papeleria_campus`.
 2. Abra **Tools → Query Tool**.
 3. Haga clic en el ícono **Open File** (carpeta) y abra `sql/estructura.sql`.
 4. Pulse **Execute** (▶) o presione **F5**.
-
-### 4.3 Cargar los 12 productos
+### 3.3 Cargar los 12 productos
 
 1. En el mismo **Query Tool**, abra `sql/datos.sql`.
 2. Pulse **Execute** (▶) o presione **F5**.
-
-### 4.4 Verificar
+### 3.4 Verificar
 
 En el Query Tool ejecute:
 
@@ -91,42 +85,35 @@ SELECT * FROM catalogo.producto ORDER BY codigo;
 
 Debe devolver **12 filas**: P001–P004, T001–T004 y A001–A004.
 
-### 4.5 Restaurar los datos iniciales
+### 3.5 Restaurar los datos iniciales
 
 Después de cada bloque de pruebas, vuelva a ejecutar **solo** `sql/datos.sql` en el Query Tool.
 
-El `TRUNCATE ... RESTART IDENTITY` elimina los registros de prueba y reinicia los ID, de modo que la tabla queda con exactamente los 12 productos originales.
+El comando `TRUNCATE ... RESTART IDENTITY` elimina los registros de prueba y reinicia los ID, de modo que la tabla queda con exactamente los 12 productos originales.
 
-> Los archivos `.sql` están guardados en **UTF-8** para que *Papelería* y *Tecnología* se inserten con tilde y cumplan el `CHECK` de categoría.
+> Los archivos `.sql` están guardados en **UTF-8** 
 
----
-
-## 5. Configurar la conexión
+## 4. Configurar la conexión
 
 Los datos de conexión **no están en el código fuente**. La clase `ConexionBD` los lee desde el archivo `config.properties`, que va en la raíz del proyecto.
 
 1. En la raíz del proyecto, haga una copia de `config.example.properties` y renómbrela como `config.properties`. También puede hacerlo desde el símbolo del sistema (CMD):
-   ```cmd
+```cmd
    copy config.example.properties config.properties
-   ```
+```
 2. Abra `config.properties` y escriba la contraseña de su usuario de PostgreSQL:
-   ```properties
+```properties
    db.url=jdbc:postgresql://localhost:5432/papeleria_campus?currentSchema=catalogo
    db.user=postgres
    db.password=TU_CONTRASEÑA
-   ```
+```
 
 Tenga en cuenta lo siguiente:
 
 - `?currentSchema=catalogo` hace que las consultas usen el esquema `catalogo`.
-- `config.properties` está excluido en `.gitignore` y **no se sube al repositorio**. Solo se versiona `config.example.properties`, que no contiene secretos.
-- Para probar el fallo de conexión (E1), cambie temporalmente el puerto a `5433` en `config.properties`.
-
 ---
 
-## 6. Ejecutar el proyecto
-
-Antes de ejecutar, el servicio de PostgreSQL debe estar en marcha. En Windows, revise que esté iniciado en **Servicios** (`services.msc`), con un nombre como `postgresql-x64-18`.
+## 5. Ejecutar el proyecto
 
 ### Opción A: desde IntelliJ IDEA
 
@@ -134,7 +121,6 @@ Antes de ejecutar, el servicio de PostgreSQL debe estar en marcha. En Windows, r
 2. Espere a que Maven descargue las dependencias.
 3. Abra la clase `com.desarrollo.proyectocorteii.Launcher` y pulse **Run** (▶).
 4. En **Run → Edit Configurations**, verifique que el **Working directory** sea la raíz del proyecto, donde está `config.properties`.
-
 ### Opción B: desde el símbolo del sistema (CMD)
 
 Desde la raíz del proyecto:
@@ -142,10 +128,10 @@ Desde la raíz del proyecto:
 ```cmd
 mvnw.cmd clean javafx:run
 ```
-
+ 
 ---
 
-## 7. Estructura del proyecto
+## 6. Estructura del proyecto
 
 ```
 ProyectoCorteII/
@@ -157,7 +143,7 @@ ProyectoCorteII/
 ├── mvnw.cmd                      ← Maven Wrapper (Windows)
 ├── pom.xml                       ← dependencias y configuración de Maven
 ├── pruebas.md                    ← matriz de pruebas
-├── README.md                     ← este documento
+├── README.md
 │
 ├── evidencias/                   ← capturas de las pruebas
 │
@@ -183,16 +169,16 @@ ProyectoCorteII/
         │       │   └── ProductoDAO.java          ← todo el SQL (SELECT, INSERT, UPDATE, DELETE)
         │       │
         │       └── Model/
-        │           └── Producto.java             ← entidad (precio en BigDecimal)
+        │           └── Producto.java             ← entidad
         │
         └── resources/
             └── com/desarrollo/proyectocorteii/
                 └── producto-view.fxml            ← interfaz gráfica
 ```
-
+ 
 ---
 
-## 8. Flujo de la aplicación
+## 7. Flujo de la aplicación
 
 ```
 Interfaz (FXML) → Controlador → DAO → PostgreSQL
@@ -202,21 +188,21 @@ Interfaz (FXML) → Controlador → DAO → PostgreSQL
 
 1. **Interfaz (`producto-view.fxml`).** El usuario escribe en el formulario o en los filtros y pulsa un botón.
 2. **Controlador (`ProductoController`).**
-    - Normaliza los datos: aplica `trim()` al código y al nombre, y `toUpperCase()` al código.
-    - Ejecuta las validaciones V1–V10 antes de llamar a la base de datos. Si un dato es inválido, muestra una alerta y no envía nada a PostgreSQL.
-    - Llama al método correspondiente del DAO. El controlador no contiene SQL.
+   - Normaliza los datos: aplica `trim()` al código y al nombre, y `toUpperCase()` al código.
+   - Ejecuta las validaciones V1–V10 antes de llamar a la base de datos. Si un dato es inválido, muestra una alerta y no envía nada a PostgreSQL.
+   - Llama al método correspondiente del DAO. El controlador no contiene SQL.
+   - Si recibe una `SQLException`, muestra al usuario un mensaje limpio, sin contraseñas ni trazas técnicas.
 3. **DAO (`ProductoDAO`).**
-    - Contiene todas las consultas SQL y usa `PreparedStatement` con parámetros `?`. Ningún valor ingresado por el usuario se concatena al SQL.
-    - Usa `executeQuery()` para las lecturas y `executeUpdate()` para las escrituras.
-    - Cierra `Connection`, `PreparedStatement` y `ResultSet` con try-with-resources.
-    - Si ocurre una `SQLException`, imprime en consola la operación y el `SQLState`, y la propaga al controlador.
+   - Contiene todas las consultas SQL y usa `PreparedStatement` con parámetros `?`. Ningún valor ingresado por el usuario se concatena al SQL.
+   - Usa `executeQuery()` para las lecturas y `executeUpdate()` para las escrituras.
+   - Cierra `Connection`, `PreparedStatement` y `ResultSet` con try-with-resources.
+   - Si ocurre una `SQLException`, imprime en consola la operación y el `SQLState`, y la propaga al controlador.
 4. **PostgreSQL.** Ejecuta la consulta y aplica sus propias restricciones (`UNIQUE`, `CHECK`, `NOT NULL`) como segunda capa de protección.
 5. **Regreso al TableView.**
-    - Cada fila del `ResultSet` se convierte en un objeto `Producto`.
-    - La lista de productos se envuelve en una `ObservableList<Producto>`, que alimenta el `TableView`.
-    - Se actualiza el contador de registros visibles.
-    - Después de guardar, actualizar o eliminar, la tabla se recarga desde PostgreSQL respetando los filtros activos.
-
+   - Cada fila del `ResultSet` se convierte en un objeto `Producto`.
+   - La lista de productos se envuelve en una `ObservableList<Producto>`, que alimenta el `TableView`.
+   - Se actualiza el contador de registros visibles.
+   - Después de guardar, actualizar o eliminar, la tabla se recarga desde PostgreSQL respetando los filtros activos.
 ### Búsqueda y filtros
 
 La búsqueda usa tres filtros:
@@ -224,40 +210,31 @@ La búsqueda usa tres filtros:
 - Texto parcial en nombre **o** código, con `ILIKE`.
 - Categoría.
 - "Solo con existencias" (`stock > 0`).
-
+  
 Los tres se combinan con `AND` en **una sola consulta** a PostgreSQL; no se filtra en memoria. Si no hay resultados, la tabla queda vacía, el contador en 0 y se muestra el aviso **"Sin coincidencias"**.
-
-### Manejo de errores
-
-| Caso | Comportamiento |
-|---|---|
-| E1. Sin conexión | Muestra una alerta comprensible. La aplicación no se cierra y el error no se presenta como un listado vacío. |
-| E2. Violación de `UNIQUE` o `CHECK` | La `SQLException` se captura y la base de datos no cambia. |
-| E3. Cero filas afectadas | Si `executeUpdate()` devuelve 0 en `UPDATE` o `DELETE`, advierte que el producto ya no existe y recarga la tabla. No muestra mensaje de éxito. |
-| E4. Diagnóstico | Registra en consola `[ERROR BD] Operación: ... \| SQLState: ...`. Al usuario le muestra un mensaje limpio, sin contraseñas ni trazas técnicas. |
 
 ---
 
-## 9. Pruebas
+## 8. Pruebas
 
 La matriz completa está en [`pruebas.md`](pruebas.md) y cubre:
 
 - B1–B7: búsqueda y filtros.
 - El ciclo CRUD con el producto temporal X001.
 - V1–V10: validaciones.
-- E1–E4: excepciones.
-
+- E1–E4: excepciones y comportamiento ante errores.
+  
 Las capturas de pantalla están en la carpeta [`evidencias/`](evidencias/).
 
 ---
 
-## 10. Fuentes y herramientas de apoyo
+## 9. Fuentes y herramientas de apoyo
 
 **Material de clase**
 
 - La clase práctica de JavaFX con conexión a PostgreSQL.
 - El ejercicio de búsqueda parametrizada y CRUD.
-
+  
 Gran parte del código se reutilizó con ligeras modificaciones.
 
 **Gemini (Google), asistente de IA, usado en la planeación para:**
@@ -275,5 +252,5 @@ Gran parte del código se reutilizó con ligeras modificaciones.
 - Redactar este README.
 - Configurar el `.gitignore`.
 - Modificar `ConexionBD` para leer la conexión desde `config.properties`.
-
+  
 El código generado con apoyo de estas herramientas fue revisado, adaptado y probado por el autor.
